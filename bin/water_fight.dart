@@ -13,56 +13,63 @@ class Ship{
     Ship(this.name, this.size);
 }
 
-// class GameArea{
-//   late List<List<String>> grid;
-//   late List<Ship> ships;
-
-//   GameArea(int size){
-//     grid = List.generate(size, (_) => List.filled(size, "[ ]"));
-//     ships = [];
-//   }
-
-//   void placeShips(Ship ship, int x, int y, bool how){
-//     for(int i = 0; i < ship.size; i++){
-//       grid[x][y+i] = "[⛴️]";
-//     }
-//     printArea();
-//   }
-
-//   void printArea(){
-//     print("Поле:");
-//     for (var row in grid){
-//       print(row.join(' '));
-//     }
-//   }
-// }
-
 class Player{
   String name;
   late List<List<String>> pole;
+  late List<List<String>> gamePole;
+  bool win = false;
   List<Ship> ships;
+  int count = 0;
+  int successAttack = 0;
 
   Player(this.name, int size, this.ships){
     pole = List.generate(size, (_) => List.filled(size, "[ ]"));
+    gamePole = List.generate(size, (_) => List.filled(size, "[ ]"));
+    for(var item in ships){
+      count += item.size;
+    }
   }
 
-  void printPole(){
-    print("Поле");
-    for(var row in pole){
-      print(row.join(' '));
+  void checkWin(){
+    if(successAttack == count){
+      
+      win = true;
     }
+  }
+
+  String printPole(){
+    String result = "";
+    String header = "  ";
+    for(int i = 1; i < pole.length+1; i++){
+      header += " $i  ";
+    }
+
+  String gameHeader = "";
+    for(int i = 1; i < gamePole.length+1; i++){
+      gameHeader += " $i  ";
+    }
+    result += "$header    $gameHeader\n";
+    for(int i = 0; i < pole.length; i++){
+      result += "${i+1} ${pole[i].join(' ')}      ${gamePole[i].join(' ')}\n";
+    }
+    return result;
   }
 
   void placeShips(Ship ship, int x, int y, bool how){
     for(int i = 0; i < ship.size; i++){
-      pole[x][y+i] = "[⛴️]";
+      if(how){
+        pole[x][y+i] = "[⛴️]";
+      }else{
+        pole[x+i][y] = "[⛴️]";
+      }
+      
     }
-    printPole();
+    print(printPole());
   }
 
   void placingShips(){
     for(int i = 0; i < ships.length; i++){
-      print("Размещение корабля ${ships[i].name}");
+      print("Размещение корабля ${ships[i].name} ${"⛴️ "*ships[i].size}");
       print("Введите координату X:");
       String? xInput = stdin.readLineSync();
       var xInputValue = int.tryParse(xInput!);
@@ -75,11 +82,48 @@ class Player{
       String? howInput = stdin.readLineSync();
       var howInputValue = int.tryParse(howInput!);
       bool how = howInputValue == 1 ? true : false;
-      placeShips(ships[i], xInputValue!, yInputValue!, how);
+      placeShips(ships[i], xInputValue!-1, yInputValue!-1, how);
     }
   }
+}
 
+String attack(int x, int y, Player player1, Player player2){
+  if(player1.pole[x][y] != "[ ]"){
+    player2.gamePole[x][y] = "[X]";
+    player2.successAttack++;
+    player2.checkWin();
+    return "Попал";
+  }
+  player2.gamePole[x][y] = "[0]";
+  return "Промах";
+}
 
+void game(Player player1, Player player2){
+  bool firstPlayer = true;
+
+  while(!player1.win && !player2.win){
+    print("Ход игрока: ${firstPlayer ? player1.name : player2.name}");
+    String result;
+    do{
+      firstPlayer ? print(player1.printPole()) : print(player2.printPole());
+      print("Введите координату X:");
+      String? xInput = stdin.readLineSync();
+      var xInputValue = int.tryParse(xInput!);
+
+      print("Введите координату Y:");
+      String? yInput = stdin.readLineSync();
+      var yInputValue = int.tryParse(yInput!);
+
+      result = attack(xInputValue!-1, yInputValue!-1, firstPlayer ? player2 : player1, firstPlayer ? player1 : player2);
+      print(result);
+    }while(result == "Попал" && !player1.win && !player2.win);
+      
+
+    firstPlayer = !firstPlayer;
+    clean();
+  }
+  clean();
+  print("Выиграл игрок: ${player1.win ? player1.name : player2.name}");
 }
 
 
@@ -109,17 +153,22 @@ void main(List<String> arguments) {
     ships.add(Ship("Аврора", 1));
     ships.add(Ship("Бисмарк", 2));
     ships.add(Ship("Титаник", 3));
-
-    Player player1 = Player("First", size, ships);
+    
+    print("Введите имя первого игрока:");
+    String? nameFirst = stdin.readLineSync();
+    Player player1 = Player(nameFirst!, size, ships);
     player1.placingShips();
 
     clean();
-    Player player2 = Player("Second", size, ships);
-    player2.placingShips();
-    
 
-    player1.printPole();
-    print("ssssssssssssssssssssssssssssssssssssssss");
-    player2.printPole();
+    print("Введите имя второго игрока:");
+    String? nameSecond = stdin.readLineSync();
+    Player player2 = Player(nameSecond!, size, ships);
+    player2.placingShips();
+
+    clean();
+
+
+    game(player1, player2);
   }
 }
